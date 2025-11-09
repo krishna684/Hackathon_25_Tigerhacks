@@ -13,8 +13,8 @@ export default function FunZone() {
         <ul className="nav-menu">
           <li><Link to="/live-tracking">Live Tracking</Link></li>
           <li><Link to="/fun-zone">Fun Zone</Link></li>
-          <li><Link to="/impact-simulator">Impact Simulator</Link></li>
-          <li><Link to="/info">Info-askAI</Link></li>
+          <li><a href="/asteroid-launcher.html" target="_blank" rel="noopener noreferrer">Impact Simulator</a></li>
+          <li><a href="https://venerable-dango-dd74b9.netlify.app/" target="_blank" rel="noopener noreferrer">Info-askAI</a></li>
           <li><Link to="/eyes-on-solar-system">Explore Solar System</Link></li>
         </ul>
         <AuthButtons />

@@ -7,7 +7,7 @@ export default function Info() {
       <nav className="navbar">
         <ul className="nav-menu">
           <li><Link to="/">Home</Link></li>
-          <li><Link to="/info">Info</Link></li>
+          <li><a href="https://venerable-dango-dd74b9.netlify.app/" target="_blank" rel="noopener noreferrer">Info</a></li>
         </ul>
         <AuthButtons />
       </nav>

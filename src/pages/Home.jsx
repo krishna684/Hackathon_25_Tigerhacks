@@ -18,24 +18,29 @@ export default function Home() {
         if (charIndex < subtitleFullText.length) {
           setSubtitleText(subtitleFullText.substring(0, charIndex + 1));
           setCharIndex(charIndex + 1);
-          timeoutId = setTimeout(typeText, 25);
+          // much faster typing
+          timeoutId = setTimeout(typeText, 2);
         } else {
           setIsTyping(false);
-          timeoutId = setTimeout(typeText, 3000);
+          // shorter pause at full text
+          timeoutId = setTimeout(typeText, 800);
         }
       } else {
         if (charIndex > 0) {
           setCharIndex(charIndex - 1);
           setSubtitleText(subtitleFullText.substring(0, charIndex - 1));
-          timeoutId = setTimeout(typeText, 30);
+          // much faster deleting
+          timeoutId = setTimeout(typeText, 3);
         } else {
           setIsTyping(true);
-          timeoutId = setTimeout(typeText, 1000);
+          // shorter pause before retyping
+          timeoutId = setTimeout(typeText, 200);
         }
       }
     }
 
-    timeoutId = setTimeout(typeText, 1000);
+  // initial startup delay (very short)
+  timeoutId = setTimeout(typeText, 50);
 
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -62,8 +67,8 @@ export default function Home() {
         <ul className="nav-menu">
           <li><Link to="/live-tracking">Live Tracking</Link></li>
           <li><Link to="/fun-zone">Fun Zone</Link></li>
-          <li><Link to="/impact-simulator">Impact Simulator</Link></li>
-          <li><Link to="/info">Info-askAI</Link></li>
+          <li><a href="/asteroid-launcher.html" target="_blank" rel="noopener noreferrer">Impact Simulator</a></li>
+          <li><a href="https://venerable-dango-dd74b9.netlify.app/" target="_blank" rel="noopener noreferrer">Info-askAI</a></li>
           <li><Link to="/eyes-on-solar-system">Explore Solar System</Link></li>
         </ul>
         <AuthButtons />
