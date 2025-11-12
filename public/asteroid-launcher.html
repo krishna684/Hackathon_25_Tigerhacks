@@ -90,6 +90,40 @@
             transform: translateX(0);
         }
 
+        /* Centered Home button inside the main sidebar box */
+        .home-btn-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 0 0 16px 0; /* top placement: remove top margin */
+            pointer-events: auto; /* allow clicking when overlayed */
+        }
+
+        .home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+        }
+
+        .home-btn:hover, .home-btn:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.55);
+            opacity: 0.98;
+        }
+
+        /* Ensure spacing so the centered button doesn't clash with nearby controls */
+        .sidebar .subtitle { margin-bottom: 12px; }
+
         @keyframes slideIn {
             from {
                 transform: translateX(-100%);
@@ -272,6 +306,10 @@
     <div id="map"></div>
 
     <div class="sidebar">
+        <!-- Centered Home button (added) -->
+        <div class="home-btn-container">
+            <a class="home-btn" href="/" title="Go to Home">🏠 Home</a>
+        </div>
         <div class="pc-note" style="margin-bottom:12px; padding:8px 12px; background:rgba(255,255,255,0.03); border-radius:8px; color:#ffdede; font-size:0.95em;">Best viewed on desktop / PC for full experience.</div>
         <h1>🌠 Asteroid Launcher</h1>
         <p class="subtitle">Click anywhere on the map to launch</p>
