@@ -165,6 +165,7 @@
         .preset-buttons { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
         .preset-btn { padding:10px; border-radius:8px; }
         .launch-btn { width:100%; padding:16px; border-radius:12px; }
+    .launch-note { color: #ffdede; font-size: 0.95em; margin: 8px 0 10px 0; }
 
         .info-panel { position: fixed; right: 20px; top: 20px; width: 320px; background: rgba(15,15,35,0.95); backdrop-filter: blur(30px); border-radius:20px; padding:28px; z-index:1000; transform:translateX(400px); opacity:0; transition: all .5s cubic-bezier(.4,0,.2,1); }
         .info-panel.active { transform: translateX(0); opacity:1; }
@@ -202,9 +203,27 @@
             display: none;
         }
 
+        /* Desktop/PC overlay shown on small screens to advise users */
+        .pc-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.86); z-index: 3000; }
+        .pc-overlay .panel { max-width: 640px; margin: 20px; background: linear-gradient(180deg,#0b0b12,#0f0f16); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); color: #fff; }
+        .pc-overlay h3 { margin: 0 0 8px 0; font-size: 1.3em; }
+        .pc-overlay p { margin: 0; opacity: 0.95; line-height: 1.4; }
+        .pc-overlay .close-btn { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #ff6b6b; border: none; color: #fff; cursor: pointer; font-weight: 700; }
+        @media (min-width: 901px) { .pc-overlay { display: none !important; } }
+
     </style>
 </head>
 <body>
+    <!-- Desktop / PC overlay (shows on small screens to encourage desktop viewing) -->
+    <div id="pcOverlay" class="pc-overlay" style="display:none;" role="dialog" aria-modal="true">
+        <div class="panel">
+            <h3>Best viewed on desktop / PC</h3>
+            <p>This interactive experience works best on a desktop or laptop. For full controls and map interactions, please open this page on a PC. You can continue on mobile, but layout and performance may be limited.</p>
+            <div style="margin-top:12px; text-align:center;">
+                <button class="close-btn" id="pcDismiss">Continue</button>
+            </div>
+        </div>
+    </div>
     <div id="map"></div>
 
     <div class="sidebar">
@@ -254,7 +273,8 @@
             </select>
         </div>
 
-        <button class="launch-btn" id="launchBtn" onclick="launchAsteroid()" disabled><span>🚀 LAUNCH ASTEROID</span></button>
+    <div class="launch-note" id="launchNote">Select a location on the map to enable launch.</div>
+    <button class="launch-btn" id="launchBtn" onclick="launchAsteroid()" disabled><span>🚀 LAUNCH ASTEROID</span></button>
         
         <button class="launch-btn" id="resetBtn" onclick="resetSimulation()" style="background: linear-gradient(135deg, #666, #888); margin-top: 10px; display: none;"><span>🔄 NEW LAUNCH</span></button>
         
@@ -771,6 +791,23 @@
             });
 
         });
+    </script>
+    <script>
+        // PC overlay behaviour: show on small screens, persist dismiss in localStorage
+        (function(){
+            try {
+                const overlay = document.getElementById('pcOverlay');
+                const dismissBtn = document.getElementById('pcDismiss');
+                if (!overlay || !dismissBtn) return;
+                const dismissed = localStorage.getItem('pc-note-dismissed');
+                function showIfMobile(){
+                    if (window.innerWidth <= 900 && !dismissed) overlay.style.display = 'flex';
+                }
+                window.addEventListener('load', showIfMobile);
+                window.addEventListener('resize', () => { if (window.innerWidth > 900) overlay.style.display = 'none'; });
+                dismissBtn.addEventListener('click', () => { overlay.style.display = 'none'; try{ localStorage.setItem('pc-note-dismissed','1'); }catch(e){} });
+            } catch (e) { /* ignore */ }
+        })();
     </script>
 </body>
 </html>

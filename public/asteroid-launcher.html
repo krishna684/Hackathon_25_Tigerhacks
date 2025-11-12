@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroid Launcher</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* Animated space background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            z-index: 0;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            filter: brightness(0.9);
+            cursor: crosshair;
+        }
+
+        #map:active {
+            cursor: crosshair;
+        }
+
+        /* Sidebar: default on desktop, collapsible on small screens */
+        .sidebar {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            width: 340px;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(30px);
+            border-radius: 20px;
+            padding: 28px;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 80px rgba(255, 107, 107, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            border: 1px solid rgba(255, 107, 107, 0.2);
+            animation: slideIn 0.5s ease-out;
+            transition: transform 0.35s ease;
+            transform: translateX(0);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        select { /* keep default look but responsive */
+            width: 100%;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #2a2a3e, #1f1f2e);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-label {
+            display: block;
+            color: #ddd;
+            font-size: 0.88em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .value-display {
+            float: right;
+            color: #ff6b6b;
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        input[type="range"] { width:100%; height:6px; }
+        .preset-buttons { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .preset-btn { padding:10px; border-radius:8px; }
+        .launch-btn { width:100%; padding:16px; border-radius:12px; }
+    .launch-note { color: #ffdede; font-size: 0.95em; margin: 8px 0 10px 0; }
+
+        /* Impact Results panel - nicer UI */
+        .info-panel {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 360px;
+            background: linear-gradient(180deg, rgba(12,12,18,0.96), rgba(8,8,12,0.92));
+            backdrop-filter: blur(10px) saturate(120%);
+            border-radius: 14px;
+            padding: 14px;
+            z-index: 1200;
+            transform: translateX(24px) scale(0.98);
+            opacity: 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: all .36s cubic-bezier(.2,.9,.2,1);
+            color: #f6f6f8;
+            font-family: inherit;
+        }
+        .info-panel.active { transform: translateX(0) scale(1); opacity:1; }
+
+        .info-panel .panel-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+        .info-panel h2 { margin:0; font-size:1.05rem; font-weight:800; letter-spacing:-0.2px; }
+        .info-actions { display:flex; gap:8px; align-items:center; }
+        .info-actions button { background:transparent; border:0; color:#ddd; padding:6px 8px; border-radius:8px; cursor:pointer; font-weight:700; }
+        .info-actions button:hover { color:#fff; background: rgba(255,255,255,0.02); }
+
+        .impact-grid { display:grid; grid-template-columns: 1fr; gap:8px; }
+        .impact-item { display:flex; gap:10px; align-items:center; padding:8px 6px; border-radius:8px; }
+        .impact-icon { width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; background: rgba(255,255,255,0.03); font-size:18px; }
+        .impact-meta { display:flex; flex-direction:column; gap:6px; width:100%; }
+        .impact-label { font-size:0.82rem; color:#cfcfd3; font-weight:700; }
+        .impact-value { font-size:0.95rem; color:#fff; font-weight:900; }
+        .impact-bar { width:100%; height:8px; background: rgba(255,255,255,0.04); border-radius:6px; overflow:hidden; }
+        .impact-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,#ff9a3c,#ff6b6b); width:0%; transition: width .6s ease; }
+
+        /* Casualties uses a different color */
+        .impact-fill.cas { background: linear-gradient(90deg,#ff6b6b,#ff3d3d); }
+
+        /* Mobile: bottom sheet style */
+        @media (max-width: 900px) {
+            .info-panel { left: 12px; right: 12px; top: auto; bottom: 12px; width: auto; border-radius: 12px; padding: 12px; }
+            .info-panel.active { transform: translateY(0); }
+        }
+
+        /* Markers and VFX (unchanged) */
+        .location-marker { width:30px; height:40px; position:relative; }
+        .location-marker::before { content:'📍'; font-size:30px; position:absolute; top:-35px; left:-15px; }
+        .impact-marker { width:24px; height:24px; border-radius:50%; }
+
+        /* Responsive behavior - collapse sidebar on small screens */
+        @media (max-width: 900px) {
+            .sidebar {
+                width: calc(100vw - 40px);
+                left: 20px;
+                top: 20px;
+                transform: translateX(-110%); /* hidden by default on mobile */
+                max-height: calc(60vh);
+            }
+            .info-panel { width: calc(100vw - 40px); right:20px; top:auto; bottom:20px; }
+            #map { height: 100vh; }
+        }
+
+        /* Toggle button for small screens */
+        #sidebarToggle {
+            position: fixed;
+            left: 12px;
+            top: 12px;
+            z-index: 2000;
+            background: rgba(10,10,15,0.85);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: #fff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 18px;
+            display: none;
+        }
+
+        /* topnav removed for standalone launcher page */
+
+        /* Desktop/PC overlay shown on small screens to advise users */
+        .pc-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.86); z-index: 3000; }
+        .pc-overlay .panel { max-width: 640px; margin: 20px; background: linear-gradient(180deg,#0b0b12,#0f0f16); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); color: #fff; }
+        .pc-overlay h3 { margin: 0 0 8px 0; font-size: 1.3em; }
+        .pc-overlay p { margin: 0; opacity: 0.95; line-height: 1.4; }
+        .pc-overlay .close-btn { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: #ff6b6b; border: none; color: #fff; cursor: pointer; font-weight: 700; }
+        @media (min-width: 901px) { .pc-overlay { display: none !important; } }
+
+    </style>
+</head>
+<body>
+    <!-- Desktop / PC overlay (shows on small screens to encourage desktop viewing) -->
+    <div id="pcOverlay" class="pc-overlay" style="display:none;" role="dialog" aria-modal="true">
+        <div class="panel">
+            <h3>Best viewed on desktop / PC</h3>
+            <p>This interactive experience works best on a desktop or laptop. For full controls and map interactions, please open this page on a PC. You can continue on mobile, but layout and performance may be limited.</p>
+            <div style="margin-top:12px; text-align:center;">
+                <button class="close-btn" id="pcDismiss">Continue</button>
+            </div>
+        </div>
+    </div>
+    <!-- top navigation removed for cleaner standalone launcher page -->
+    <div id="map"></div>
+
+    <div class="sidebar">
+        <div class="pc-note" style="margin-bottom:12px; padding:8px 12px; background:rgba(255,255,255,0.03); border-radius:8px; color:#ffdede; font-size:0.95em;">Best viewed on desktop / PC for full experience.</div>
+        <h1>🌠 Asteroid Launcher</h1>
+        <p class="subtitle">Click anywhere on the map to launch</p>
+
+        <div class="instruction">
+            Select your asteroid parameters and click on the map to see the impact!
+        </div>
+
+        <div class="control-group">
+2            <label class="control-label">
+                Diameter
+                <span class="value-display" id="diameterValue">100 m</span>
+            </label>
+            <input type="range" id="diameter" min="1" max="1000" value="100" step="1">
+            <div class="preset-buttons">
+                <button class="preset-btn" onclick="setDiameter(10)">House (10m)</button>
+                <button class="preset-btn" onclick="setDiameter(50)">Stadium (50m)</button>
+                <button class="preset-btn" onclick="setDiameter(100)">City Block (100m)</button>
+                <button class="preset-btn" onclick="setDiameter(500)">Golden Gate (500m)</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Velocity
+                <span class="value-display" id="velocityValue">20 km/s</span>
+            </label>
+            <input type="range" id="velocity" min="11" max="70" value="20" step="1">
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Impact Angle
+                <span class="value-display" id="angleValue">45°</span>
+            </label>
+            <input type="range" id="angle" min="15" max="90" value="45" step="5">
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">Material</label>
+            <select id="material" style="width: 100%; padding: 10px; background: #222; border: 1px solid #444; border-radius: 6px; color: #fff; cursor: pointer;">
+                <option value="1000">Ice (1000 kg/m³)</option>
+                <option value="3000" selected>Rock (3000 kg/m³)</option>
+                <option value="8000">Iron (8000 kg/m³)</option>
+            </select>
+        </div>
+
+    <div class="launch-note" id="launchNote">Select a location on the map to enable launch.</div>
+    <button class="launch-btn" id="launchBtn" onclick="launchAsteroid()" disabled><span>🚀 LAUNCH ASTEROID</span></button>
+        
+        <button class="launch-btn" id="resetBtn" onclick="resetSimulation()" style="background: linear-gradient(135deg, #666, #888); margin-top: 10px; display: none;"><span>🔄 NEW LAUNCH</span></button>
+        
+        <div style="margin-top: 20px;">
+            <label class="control-label" style="margin-bottom: 10px;">Quick Launch Locations</label>
+            <div class="preset-buttons">
+                <button class="preset-btn" onclick="launchAt(40.7128, -74.0060)">🗽 New York</button>
+                <button class="preset-btn" onclick="launchAt(51.5074, -0.1278)">🏰 London</button>
+                <button class="preset-btn" onclick="launchAt(35.6762, 139.6503)">🗼 Tokyo</button>
+                <button class="preset-btn" onclick="launchAt(48.8566, 2.3522)">🗼 Paris</button>
+                <button class="preset-btn" onclick="launchAt(34.0522, -118.2437)">🌴 LA</button>
+                <button class="preset-btn" onclick="launchAt(-33.8688, 151.2093)">🦘 Sydney</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-panel" id="infoPanel" aria-live="polite">
+        <div class="panel-head">
+            <h2>Impact Results</h2>
+            <div class="info-actions">
+                <button id="copyImpact" title="Copy results">Copy</button>
+                <button id="closeImpact" title="Close">✕</button>
+            </div>
+        </div>
+
+        <div class="impact-grid">
+            <div class="impact-item">
+                <div class="impact-icon">💥</div>
+                <div class="impact-meta">
+                    <div class="impact-label">Energy Released</div>
+                    <div class="impact-value" id="energyValue">-</div>
+                    <div class="impact-bar"><div class="impact-fill" id="energyBar"></div></div>
+                </div>
+            </div>
+
+            <div class="impact-item">
+                <div class="impact-icon">🔥</div>
+                <div class="impact-meta">
+                    <div class="impact-label">Fireball Radius</div>
+                    <div class="impact-value" id="fireballValue">-</div>
+                    <div class="impact-bar"><div class="impact-fill" id="fireballBar"></div></div>
+                </div>
+            </div>
+
+            <div class="impact-item">
+                <div class="impact-icon">🕳️</div>
+                <div class="impact-meta">
+                    <div class="impact-label">Crater Diameter</div>
+                    <div class="impact-value" id="craterValue">-</div>
+                    <div class="impact-bar"><div class="impact-fill" id="craterBar"></div></div>
+                </div>
+            </div>
+
+            <div class="impact-item">
+                <div class="impact-icon">🌊</div>
+                <div class="impact-meta">
+                    <div class="impact-label">Shockwave Radius</div>
+                    <div class="impact-value" id="shockwaveValue">-</div>
+                    <div class="impact-bar"><div class="impact-fill" id="shockwaveBar"></div></div>
+                </div>
+            </div>
+
+            <div class="impact-item">
+                <div class="impact-icon">⚠️</div>
+                <div class="impact-meta">
+                    <div class="impact-label">Casualties (est.)</div>
+                    <div class="impact-value" id="casualtiesValue">-</div>
+                    <div class="impact-bar"><div class="impact-fill cas" id="casualtiesBar"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle button (will be shown on smaller screens) -->
+    <button id="sidebarToggle" aria-label="Toggle controls">☰</button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Create animated stars
+        function createStars() {
+            const starsContainer = document.createElement('div');
+            starsContainer.className = 'stars';
+            document.body.appendChild(starsContainer);
+
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.opacity = Math.random() * 0.7 + 0.3;
+                starsContainer.appendChild(star);
+            }
+        }
+        createStars();
+
+        // Initialize map
+        const map = L.map('map', {
+            center: [40.7128, -74.0060],
+            zoom: 11,
+            zoomControl: true,
+            preferCanvas: true
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Variables
+        let impactMarker = null;
+        let damageCircles = [];
+        let currentImpactData = null;
+        let selectedLocation = null;
+        const launchBtn = document.getElementById('launchBtn');
+
+        // Get elements
+        const diameterSlider = document.getElementById('diameter');
+        const velocitySlider = document.getElementById('velocity');
+        const angleSlider = document.getElementById('angle');
+        const materialSelect = document.getElementById('material');
+        const infoPanel = document.getElementById('infoPanel');
+        const sidebarEl = document.querySelector('.sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+
+        // Update display values
+        diameterSlider.oninput = () => {
+            document.getElementById('diameterValue').textContent = diameterSlider.value + ' m';
+        };
+
+        velocitySlider.oninput = () => {
+            document.getElementById('velocityValue').textContent = velocitySlider.value + ' km/s';
+        };
+
+        angleSlider.oninput = () => {
+            document.getElementById('angleValue').textContent = angleSlider.value + '°';
+        };
+
+        // Material selector handler - show visual feedback
+        materialSelect.onchange = () => {
+            const density = materialSelect.value;
+            const materialNames = {
+                '1000': 'Ice',
+                '3000': 'Rock', 
+                '8000': 'Iron'
+            };
+            const materialName = materialNames[density];
+            
+            // Update button text to show selected material
+            if (selectedLocation) {
+                launchBtn.innerHTML = `<span>🚀 LAUNCH ${materialName.toUpperCase()} ASTEROID</span>`;
+            } else {
+                launchBtn.innerHTML = `<span>🚀 ${materialName} Asteroid Ready</span>`;
+            }
+            
+            // Add visual feedback with different colors
+            const colors = {
+                '1000': { border: '#6bb6ff', shadow: 'rgba(107,182,255,0.5)' },
+                '3000': { border: '#feca57', shadow: 'rgba(254,202,87,0.5)' },
+                '8000': { border: '#ff6b6b', shadow: 'rgba(255,107,107,0.5)' }
+            };
+            
+            materialSelect.style.borderColor = colors[density].border;
+            materialSelect.style.boxShadow = `0 0 15px ${colors[density].shadow}`;
+            materialSelect.style.transition = 'all 0.3s ease';
+        };
+
+        function setDiameter(value) {
+            diameterSlider.value = value;
+            document.getElementById('diameterValue').textContent = value + ' m';
+        }
+
+        // Calculate impact effects
+        function calculateImpact(lat, lng) {
+            const diameter = parseFloat(diameterSlider.value);
+            const velocity = parseFloat(velocitySlider.value) * 1000;
+            const angle = parseFloat(angleSlider.value);
+            const density = parseFloat(materialSelect.value);
+
+            // Physics calculations
+            const radius = diameter / 2;
+            const volume = (4/3) * Math.PI * Math.pow(radius, 3);
+            const mass = volume * density;
+            const kineticEnergy = 0.5 * mass * Math.pow(velocity, 2);
+            const megatonsTNT = kineticEnergy / 4.184e15;
+
+            // Damage radii (in km)
+            const fireballRadius = 0.44 * Math.pow(megatonsTNT, 0.4);
+            const craterDiameter = Math.pow(kineticEnergy / 1e15, 0.25) * 1 * Math.sin(angle * Math.PI / 180);
+            const shockwaveRadius = 2.2 * Math.pow(megatonsTNT, 0.33);
+            const thermalRadius = 1.5 * Math.pow(megatonsTNT, 0.41);
+
+            // Estimate casualties (very rough)
+            const affectedArea = Math.PI * Math.pow(shockwaveRadius, 2);
+            const casualties = Math.floor(affectedArea * 5000);
+
+            return {
+                lat, lng,
+                energy: megatonsTNT,
+                fireballRadius,
+                craterDiameter,
+                shockwaveRadius,
+                thermalRadius,
+                casualties
+            };
+        }
+
+        // Display impact on map
+        function displayImpact(data) {
+            // Clear previous impact
+            if (impactMarker) {
+                map.removeLayer(impactMarker);
+            }
+            damageCircles.forEach(circle => map.removeLayer(circle));
+            damageCircles = [];
+
+            // Add impact marker
+            impactMarker = L.marker([data.lat, data.lng], {
+                icon: L.divIcon({
+                    className: 'impact-marker',
+                    iconSize: [20, 20]
+                })
+            }).addTo(map);
+
+            // Add damage circles
+            const circles = [
+                { radius: data.fireballRadius, color: '#ff0000', label: 'Fireball' },
+                { radius: data.thermalRadius, color: '#ff6600', label: 'Thermal Radiation' },
+                { radius: data.shockwaveRadius, color: '#ffaa00', label: 'Shockwave' }
+            ];
+
+            circles.forEach(({ radius, color, label }) => {
+                const circle = L.circle([data.lat, data.lng], {
+                    radius: radius * 1000,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.2,
+                    weight: 2
+                }).addTo(map);
+                
+                circle.bindPopup(label);
+                damageCircles.push(circle);
+            });
+
+            // Update info panel
+                document.getElementById('energyValue').textContent = 
+                    data.energy < 0.01 ? data.energy.toExponential(2) + ' MT' : data.energy.toFixed(2) + ' Megatons';
+                document.getElementById('fireballValue').textContent = data.fireballRadius.toFixed(2) + ' km';
+                document.getElementById('craterValue').textContent = data.craterDiameter.toFixed(0) + ' m';
+                document.getElementById('shockwaveValue').textContent = data.shockwaveRadius.toFixed(2) + ' km';
+                document.getElementById('casualtiesValue').textContent = data.casualties.toLocaleString();
+
+                // Render visual bars (normalize values to a reasonable scale)
+                try {
+                    // pick representative numeric values (convert crater to km for parity)
+                    const values = {
+                        energy: Math.log10(Math.max(1e-6, data.energy)),
+                        fireball: data.fireballRadius,
+                        crater: data.craterDiameter / 1000,
+                        shockwave: data.shockwaveRadius,
+                        casualties: Math.log10(Math.max(1, data.casualties))
+                    };
+                    // compute max for normalization
+                    const maxVal = Math.max(values.fireball, values.crater, values.shockwave, values.casualties, Math.abs(values.energy));
+                    function pct(val){ return Math.min(100, Math.round((Math.abs(val) / (maxVal || 1)) * 100)); }
+                    document.getElementById('energyBar').style.width = pct(values.energy) + '%';
+                    document.getElementById('fireballBar').style.width = pct(values.fireball) + '%';
+                    document.getElementById('craterBar').style.width = pct(values.crater) + '%';
+                    document.getElementById('shockwaveBar').style.width = pct(values.shockwave) + '%';
+                    document.getElementById('casualtiesBar').style.width = pct(values.casualties) + '%';
+                } catch (e) { /* ignore UI bar errors */ }
+
+                // show panel
+                infoPanel.classList.add('active');
+
+            // Fit map to show all damage
+            const bounds = L.latLngBounds([data.lat, data.lng]);
+            damageCircles.forEach(circle => {
+                bounds.extend(circle.getBounds());
+            });
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        // Create asteroid trail animation with material-specific colors
+        function createAsteroidTrail(latlng) {
+            const point = map.latLngToContainerPoint(latlng);
+            const material = materialSelect.value;
+            
+            // Different trail colors for each material
+            let trailGradient;
+            if (material === '1000') { // Ice - Blue
+                trailGradient = 'linear-gradient(to bottom, transparent, #4a9eff, #6bb6ff, #a8e6ff, #fff)';
+            } else if (material === '3000') { // Rock - Orange
+                trailGradient = 'linear-gradient(to bottom, transparent, #ff6600, #ff8c00, #ffb347, #fff)';
+            } else { // Iron - Brown
+                trailGradient = 'linear-gradient(to bottom, transparent, #3e2723, #654321, #8b4513, #d2691e)';
+            }
+            
+            const trail = document.createElement('div');
+            trail.className = 'asteroid-trail';
+            trail.style.left = point.x + 'px';
+            trail.style.top = '-100px';
+            trail.style.zIndex = '9999';
+            trail.style.background = trailGradient;
+            document.body.appendChild(trail);
+
+            // Add multiple trails for effect
+            const trailCount = material === '8000' ? 5 : 3;
+            for (let i = 0; i < trailCount; i++) {
+                setTimeout(() => {
+                    const extraTrail = document.createElement('div');
+                    extraTrail.className = 'asteroid-trail';
+                    extraTrail.style.left = (point.x + (Math.random() - 0.5) * 40) + 'px';
+                    extraTrail.style.top = '-100px';
+                    extraTrail.style.zIndex = '9999';
+                    extraTrail.style.opacity = '0.5';
+                    extraTrail.style.background = trailGradient;
+                    document.body.appendChild(extraTrail);
+                    setTimeout(() => extraTrail.remove(), 2000);
+                }, i * 100);
+            }
+
+            setTimeout(() => {
+                trail.remove();
+            }, 2000);
+        }
+
+        // Launch function
+        function launchImpact(lat, lng) {
+            // Pan to location first
+            map.setView([lat, lng], 11, { animate: true, duration: 1 });
+            
+            // Create visual feedback
+            setTimeout(() => {
+                createAsteroidTrail(L.latLng(lat, lng));
+                
+                // Calculate and display impact after animation
+                setTimeout(() => {
+                    currentImpactData = calculateImpact(lat, lng);
+                    displayImpact(currentImpactData);
+                }, 1500);
+            }, 500);
+        }
+
+        // Place marker on map click
+        map.on('click', (e) => {
+            const { lat, lng } = e.latlng;
+            selectLocation(lat, lng);
+        });
+
+        // Select location and place marker
+        function selectLocation(lat, lng) {
+            selectedLocation = { lat, lng };
+            
+            // Clear previous marker
+            if (impactMarker) {
+                map.removeLayer(impactMarker);
+            }
+            damageCircles.forEach(circle => map.removeLayer(circle));
+            damageCircles = [];
+            
+            // Hide results
+            infoPanel.classList.remove('active');
+            
+            // Place location pin marker
+            impactMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'location-marker',
+                    iconSize: [30, 40],
+                    iconAnchor: [15, 40]
+                })
+            }).addTo(map);
+            
+            // Enable launch button
+            launchBtn.disabled = false;
+            const materialNames = { '1000': 'Ice', '3000': 'Rock', '8000': 'Iron' };
+            const materialName = materialNames[materialSelect.value];
+            launchBtn.innerHTML = `<span>🚀 LAUNCH ${materialName.toUpperCase()} ASTEROID</span>`;
+
+            // On small screens hide the sidebar so the user sees the map (responsive UX)
+            if (window.innerWidth <= 900) {
+                sidebarEl.style.transform = 'translateX(-110%)';
+            }
+        }
+
+        // Create blast explosion effect based on material
+        function createBlastEffect(latlng) {
+            const point = map.latLngToContainerPoint(latlng);
+            const material = materialSelect.value;
+            
+            // Main blast with material-specific colors
+            const blast = document.createElement('div');
+            blast.className = 'blast-effect';
+            blast.style.left = (point.x - 100) + 'px';
+            blast.style.top = (point.y - 100) + 'px';
+            
+            // Different effects for each material
+            if (material === '1000') { // Ice - Blue
+                blast.style.background = 'radial-gradient(circle, #fff 0%, #a8e6ff 20%, #6bb6ff 40%, #4a9eff 60%, #2d7dd2 80%, transparent 100%)';
+                blast.style.animation = 'blastExpandIce 1.2s ease-out forwards';
+            } else if (material === '3000') { // Rock - Orange
+                blast.style.background = 'radial-gradient(circle, #fff 0%, #ffe4b5 20%, #ffb347 40%, #ff8c00 60%, #ff6600 80%, transparent 100%)';
+                blast.style.animation = 'blastExpandRock 1s ease-out forwards';
+            } else { // Iron - Brown/Dark
+                blast.style.background = 'radial-gradient(circle, #fff 0%, #d2691e 20%, #8b4513 40%, #654321 60%, #3e2723 80%, transparent 100%)';
+                blast.style.animation = 'blastExpandIron 0.8s ease-out forwards';
+            }
+            
+            document.body.appendChild(blast);
+            
+            // Material-specific shockwave rings
+            const ringCount = material === '8000' ? 5 : material === '3000' ? 3 : 2;
+            const ringColor = material === '1000' ? 'rgba(107, 182, 255, 0.8)' : 
+                            material === '3000' ? 'rgba(255, 140, 0, 0.8)' : 
+                            'rgba(139, 69, 19, 0.9)';
+            
+            for (let i = 0; i < ringCount; i++) {
+                setTimeout(() => {
+                    const ring = document.createElement('div');
+                    ring.className = 'shockwave-ring';
+                    ring.style.left = (point.x - 10) + 'px';
+                    ring.style.top = (point.y - 10) + 'px';
+                    ring.style.borderColor = ringColor;
+                    ring.style.borderWidth = material === '8000' ? '4px' : '3px';
+                    document.body.appendChild(ring);
+                    setTimeout(() => ring.remove(), 1500);
+                }, i * (material === '8000' ? 150 : 200));
+            }
+            
+            // Add particles for rock/iron
+            if (material !== '1000') {
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const particle = document.createElement('div');
+                        particle.className = 'debris-particle';
+                        particle.style.left = point.x + 'px';
+                        particle.style.top = point.y + 'px';
+                        particle.style.background = material === '8000' ? '#654321' : '#ff8c00';
+                        const angle = (Math.PI * 2 * i) / 20;
+                        particle.style.setProperty('--tx', Math.cos(angle) * 200 + 'px');
+                        particle.style.setProperty('--ty', Math.sin(angle) * 200 + 'px');
+                        document.body.appendChild(particle);
+                        setTimeout(() => particle.remove(), 1000);
+                    }, 100);
+                }
+            }
+            
+            setTimeout(() => blast.remove(), 1200);
+        }
+
+        // Launch asteroid at selected location
+        function launchAsteroid() {
+            if (!selectedLocation) return;
+            
+            const { lat, lng } = selectedLocation;
+            
+            // Disable button during launch
+            launchBtn.disabled = true;
+            launchBtn.innerHTML = '<span>🚀 LAUNCHING...</span>';
+            
+            // Create asteroid trail animation
+            createAsteroidTrail(L.latLng(lat, lng));
+            
+            // Create blast effect when asteroid hits
+            setTimeout(() => {
+                createBlastEffect(L.latLng(lat, lng));
+            }, 1400);
+            
+            // Calculate and display impact after animation
+            setTimeout(() => {
+                currentImpactData = calculateImpact(lat, lng);
+                displayImpact(currentImpactData);
+                
+                // Re-enable button and show reset button
+                launchBtn.disabled = false;
+                launchBtn.innerHTML = '<span>🚀 LAUNCH AGAIN</span>';
+                document.getElementById('resetBtn').style.display = 'block';
+            }, 1500);
+        }
+
+        // Quick launch function for buttons
+        function launchAt(lat, lng) {
+            selectLocation(lat, lng);
+            map.setView([lat, lng], 11, { animate: true });
+            setTimeout(() => {
+                launchAsteroid();
+            }, 500);
+        }
+
+        // Reset simulation for fresh launch
+        function resetSimulation() {
+            // Clear marker and circles
+            if (impactMarker) {
+                map.removeLayer(impactMarker);
+                impactMarker = null;
+            }
+            damageCircles.forEach(circle => map.removeLayer(circle));
+            damageCircles = [];
+            
+            // Hide results panel
+            infoPanel.classList.remove('active');
+            
+            // Reset selected location
+            selectedLocation = null;
+            
+            // Reset button states
+            launchBtn.disabled = true;
+            launchBtn.innerHTML = '<span>🚀 LAUNCH ASTEROID</span>';
+            document.getElementById('resetBtn').style.display = 'none';
+            
+            // Reset to default view
+            map.setView([40.7128, -74.0060], 11, { animate: true });
+
+            // On small screens, show the sidebar again
+            if (window.innerWidth <= 900) {
+                sidebarEl.style.transform = 'translateX(0)';
+            }
+        }
+
+        // Add some famous locations as quick launch buttons
+        const locations = [
+            { name: 'New York', coords: [40.7128, -74.0060] },
+            { name: 'London', coords: [51.5074, -0.1278] },
+            { name: 'Tokyo', coords: [35.6762, 139.6503] },
+            { name: 'Paris', coords: [48.8566, 2.3522] }
+        ];
+
+        // Responsive & UX helpers: hide any top nav if present and enable new-tab behavior
+        document.addEventListener('DOMContentLoaded', () => {
+            // Remove site nav/header if it exists (useful when embedding in a larger site)
+            // But keep the nav when on this standalone page (asteroid-launcher)
+            if (!window.location.pathname.includes('asteroid-launcher')) {
+                document.querySelectorAll('nav, .navbar, #nav, header, .site-header').forEach(e => e.remove());
+            }
+
+            // If opened directly in the same tab, attempt to open a new tab and close the original.
+            // This allows "open this page" to result in a new tab. To disable, add ?no-new-tab to the URL.
+            try {
+                const params = new URLSearchParams(window.location.search);
+                if (!params.has('no-new-tab') && !window.name.includes('asteroidLauncherTab') && !window.opener) {
+                    const w = window.open(window.location.href, '_blank');
+                    if (w) {
+                        w.name = 'asteroidLauncherTab';
+                        // attempt to close the original window (may be blocked in some browsers)
+                        try { window.close(); } catch (e) { /* ignore */ }
+                    }
+                }
+            } catch (err) { /* ignore URL issues */ }
+
+            // Sidebar toggle behavior for small screens
+            function updateResponsive() {
+                if (window.innerWidth <= 900) {
+                    sidebarToggle.style.display = 'block';
+                    sidebarEl.style.transform = 'translateX(-110%)';
+                } else {
+                    sidebarToggle.style.display = 'none';
+                    sidebarEl.style.transform = 'translateX(0)';
+                }
+            }
+            updateResponsive();
+            window.addEventListener('resize', updateResponsive);
+
+            // Top nav toggle for this page
+            const navToggle = document.getElementById('navToggle');
+            const navLinks = document.querySelector('.nav-links');
+            if (navToggle && navLinks) {
+                navToggle.addEventListener('click', () => {
+                    navLinks.classList.toggle('open');
+                });
+            }
+
+            sidebarToggle.addEventListener('click', () => {
+                if (sidebarEl.style.transform.includes('-110')) sidebarEl.style.transform = 'translateX(0)';
+                else sidebarEl.style.transform = 'translateX(-110%)';
+            });
+
+            // Close sidebar when clicking on the map on small screens to maximize map view
+            map.on('click', () => {
+                if (window.innerWidth <= 900) sidebarEl.style.transform = 'translateX(-110%)';
+            });
+
+            // Info panel controls
+            const closeBtn = document.getElementById('closeImpact');
+            const copyBtn = document.getElementById('copyImpact');
+            if (closeBtn) closeBtn.addEventListener('click', () => { infoPanel.classList.remove('active'); });
+            if (copyBtn) copyBtn.addEventListener('click', () => {
+                try {
+                    const text = `Impact Results:\nEnergy: ${document.getElementById('energyValue').textContent}\nFireball: ${document.getElementById('fireballValue').textContent}\nCrater: ${document.getElementById('craterValue').textContent}\nShockwave: ${document.getElementById('shockwaveValue').textContent}\nCasualties: ${document.getElementById('casualtiesValue').textContent}`;
+                    navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : (window.prompt('Copy', text) );
+                } catch (e) { /* ignore */ }
+            });
+
+        });
+    </script>
+    <script>
+        // PC overlay behaviour: show on small screens, persist dismiss in localStorage
+        (function(){
+            try {
+                const overlay = document.getElementById('pcOverlay');
+                const dismissBtn = document.getElementById('pcDismiss');
+                if (!overlay || !dismissBtn) return;
+                const dismissed = localStorage.getItem('pc-note-dismissed');
+                function showIfMobile(){
+                    if (window.innerWidth <= 900 && !dismissed) overlay.style.display = 'flex';
+                }
+                window.addEventListener('load', showIfMobile);
+                window.addEventListener('resize', () => { if (window.innerWidth > 900) overlay.style.display = 'none'; });
+                dismissBtn.addEventListener('click', () => { overlay.style.display = 'none'; try{ localStorage.setItem('pc-note-dismissed','1'); }catch(e){} });
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+</body>
+</html>

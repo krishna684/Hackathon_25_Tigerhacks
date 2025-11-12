@@ -113,7 +113,12 @@ export default function MeteorStandalone() {
         </div>
       </section>
 
-      <footer />
+      <footer>
+        <p>Developed for <strong>TigerHacks - 25</strong></p>
+        <a href="https://devpost.com/software/ulka" target="_blank" rel="noopener noreferrer">
+          View on Devpost
+        </a>
+      </footer>
 
       <style jsx>{`
         /* fonts */
@@ -163,6 +168,9 @@ export default function MeteorStandalone() {
         .accent{ color: #af8650; font-family: prompt; }
 
         footer{ min-height:160px; padding:2rem 1rem; text-align:center; display:flex; justify-content:center; align-items:center; flex-direction:column; background-image: linear-gradient(rgba(0,0,0,1), rgba(0,0,0,0.5)), url('/meteor-standalone/images/earth-1365995_1920.jpg'); background-size:cover; background-position:center; }
+        footer p{ margin-bottom:0.5rem; font-family:prompt; }
+        footer a{ color:#af8650; text-decoration:none; font-family:prompt; transition:all 0.3s ease; }
+        footer a:hover{ color:#fff; text-shadow:0 0 10px rgba(175,134,80,0.8); }
 
         @media (max-width:768px){
           .box-1{ padding-top:4rem; }

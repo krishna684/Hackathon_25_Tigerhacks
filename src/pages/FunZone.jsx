@@ -1,7 +1,10 @@
 import AuthButtons from '../components/AuthButtons';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function FunZone() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const openSpaceDefender = () => {
     window.open('/space-defender/index.html', '_blank', 'width=1200,height=800');
   };
@@ -10,14 +13,26 @@ export default function FunZone() {
     <div style={{ minHeight: '100vh', paddingTop: '100px', color: '#fff' }}>
       <nav className="navbar">
         <Link to="/" className="nav-brand">ULKAA</Link>
-        <ul className="nav-menu">
-          <li><Link to="/live-tracking">Live Tracking</Link></li>
-          <li><Link to="/fun-zone">Fun Zone</Link></li>
-          <li><a href="/asteroid-launcher.html" target="_blank" rel="noopener noreferrer">Impact Simulator</a></li>
-          <li><a href="https://venerable-dango-dd74b9.netlify.app/" target="_blank" rel="noopener noreferrer">Info-askAI</a></li>
-          <li><Link to="/eyes-on-solar-system">Explore Solar System</Link></li>
+        
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle mobile menu"
+        >
+          <span className={`hamburger ${isMobileMenuOpen ? 'open' : ''}`}></span>
+        </button>
+        
+        <ul className={`nav-menu ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          <li><Link to="/live-tracking" onClick={() => setIsMobileMenuOpen(false)}>Live Tracking</Link></li>
+          <li><Link to="/fun-zone" onClick={() => setIsMobileMenuOpen(false)}>Fun Zone</Link></li>
+          <li><a href="/asteroid-launcher.html" target="_blank" rel="noopener noreferrer" onClick={() => setIsMobileMenuOpen(false)}>Impact Simulator</a></li>
+          <li><a href="https://venerable-dango-dd74b9.netlify.app/" target="_blank" rel="noopener noreferrer" onClick={() => setIsMobileMenuOpen(false)}>Info-askAI</a></li>
+          <li><Link to="/eyes-on-solar-system" onClick={() => setIsMobileMenuOpen(false)}>Explore Solar System</Link></li>
         </ul>
-        <AuthButtons />
+        
+        <div className="nav-auth">
+          <AuthButtons />
+        </div>
       </nav>
       
       <div className="profile-container">

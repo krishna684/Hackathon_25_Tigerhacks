@@ -23,6 +23,14 @@
         * {
             font-family: sansserifbook;
             color: white;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
 
         /* make hero fill viewport and be responsive */
@@ -111,7 +119,7 @@
             opacity: 0.5;
         }
 
-        .container-1 { background-image: linear-gradient(rgba(0,0,0,0.95), rgba(0,0,0,0.2), rgba(0,0,0,0.95)), url("images/2k_stars.jpg"); padding:3rem 1rem; }
+        .container-1 { background-image: linear-gradient(rgba(0,0,0,0.95), rgba(0,0,0,0.2), rgba(0,0,0,0.95)), url("images/2k_stars.jpg"); padding:3rem 1rem; width:100%; }
 
         .container-1 h1 { font-family: sansserifbook; text-align:center; color:#af8650; font-weight:700; font-size:clamp(1.5rem,3.5vw,2.25rem); margin:1rem 0; }
 
@@ -159,6 +167,7 @@
         .ref {
             margin-top: 0px;
             padding: 100px;
+            width: 100%;
         }
 
         .ref span {
@@ -183,7 +192,7 @@
             font-size: 16px;
         }
 
-        footer { background-image: linear-gradient(rgba(0,0,0,1), rgba(0,0,0,0.5)), url("images/earth-1365995_1920.jpg"); padding:3rem 1rem; margin:0; background-position:center; background-size:cover; text-align:center; }
+        footer { background-image: linear-gradient(rgba(0,0,0,1), rgba(0,0,0,0.5)), url("images/earth-1365995_1920.jpg"); padding:3rem 1rem; margin:0; background-position:center; background-size:cover; text-align:center; width:100%; }
 
         footer p {
             font-family: prompt;
@@ -358,6 +367,12 @@
                 });
             })();
         </script>
+    <script>
+        // Mobile nav toggle
+        document.querySelector('.nav-toggle').addEventListener('click', function() {
+            document.querySelector('.glass-nav').classList.toggle('open');
+        });
+    </script>
 </body>
 
 </html>
