@@ -11,6 +11,14 @@ Together, they form a powerful platform for real-time discovery, analysis, and c
 
 ---
 
+## 🌐 Live Demo
+
+👉 **Explore UKLAA now:** [https://prismatic-selkie-d3177f.netlify.app/](https://prismatic-selkie-d3177f.netlify.app/)
+
+Experience the real-time 3D meteor tracking and AI-powered Gemini chatbot directly in your browser — optimized for both desktop and mobile.
+
+---
+
 ## ✨ Core Features
 
 * 🌍 **Interactive 3D Globe** — Real-time WebGL globe with Earth, Moon, starfield, and orbit controls
